@@ -16,7 +16,8 @@ public class RouletteV2ClientImpl extends RouletteV1ClientImpl implements IRoule
 
   @Override
   public void clearDataStore() throws IOException {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
+
   }
 
   @Override
