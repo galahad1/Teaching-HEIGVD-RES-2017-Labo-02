@@ -53,15 +53,17 @@ public class RouletteV2ClientHandler  implements IClientHandler {
      */
   protected boolean processV2(String command, BufferedReader reader, PrintWriter writer) throws IOException
   {
+    nbrCommands++;
     switch (command.toUpperCase()) {
+
       case RouletteV2Protocol.CMD_CLEAR:
-        nbrCommands++;
+
         store.clear();
         writer.println(RouletteV2Protocol.RESPONSE_CLEAR_DONE);
         writer.flush();
         break;
       case RouletteV2Protocol.CMD_LIST:
-        nbrCommands++;
+
 
         // list of students in class StudentsList
         StudentsList slResponse = new StudentsList();
@@ -70,7 +72,7 @@ public class RouletteV2ClientHandler  implements IClientHandler {
         writer.flush();
         break;
       case RouletteV2Protocol.CMD_RANDOM:
-        nbrCommands++;
+
         RandomCommandResponse rcResponse = new RandomCommandResponse();
         try {
           rcResponse.setFullname(store.pickRandomStudent().getFullname());
@@ -81,7 +83,7 @@ public class RouletteV2ClientHandler  implements IClientHandler {
         writer.flush();
         break;
       case RouletteV2Protocol.CMD_HELP:
-        nbrCommands++;
+
         writer.println("Commands: " + Arrays.toString(RouletteV2Protocol.SUPPORTED_COMMANDS));
         break;
       case RouletteV2Protocol.CMD_INFO:
@@ -91,62 +93,32 @@ public class RouletteV2ClientHandler  implements IClientHandler {
         writer.flush();
         break;
       case RouletteV2Protocol.CMD_LOAD:
-        nbrCommands++;
+
         writer.println(RouletteV2Protocol.RESPONSE_LOAD_START);
         writer.flush();
 
-        List<Student> studentsToAdd;
-        studentsToAdd = importStudents(reader); // temporise students to add
-        int nbrStudends = studentsToAdd.size();
+        int nbrStudends = store.getNumberOfStudents();
+        store.importData(reader);
+        int nbrNewStudents = store.getNumberOfStudents() - nbrStudends;
 
-        synchronized (this)
-        {
-          // add the students to the store
-          for(Student s : studentsToAdd) {
-            store.addStudent(s);
-          }
-        }
         // prepare the response
-        LoadCommandResponse lcResponse = new LoadCommandResponse("success", nbrStudends);
+        LoadCommandResponse lcResponse = new LoadCommandResponse("success", nbrNewStudents);
         writer.println(JsonObjectMapper.toJson(lcResponse)); // send response
         writer.flush();
         break;
       case RouletteV2Protocol.CMD_BYE:
-        nbrCommands++;
+
         ByeCommandResponse bcResponse = new ByeCommandResponse("success", nbrCommands);
         writer.println(JsonObjectMapper.toJson(bcResponse));
         writer.flush();
         return true;
       default:
+        --nbrCommands;
         writer.println("Huh? please use HELP if you don't know what commands are available.");
         writer.flush();
         break;
     }
     return false;
-  }
-
-  /**
-   * @brief return a list of students to add
-   * @return
-   */
-  private List<Student> importStudents(BufferedReader reader) throws IOException {
-    List<Student> studentsToAdd = new ArrayList<>();
-    String record;
-    boolean endReached = false;
-    while (!endReached && (record = reader.readLine()) != null)
-    {
-      if (record.equalsIgnoreCase(RouletteV2Protocol.CMD_LOAD_ENDOFDATA_MARKER))
-      {
-        LOG.log(Level.INFO, "End of stream reached. New students have been added to the store.");
-        endReached = true;
-      }
-      else
-      {
-        LOG.log(Level.INFO, "Adding student {0} to the store.", record);
-        studentsToAdd.add(new Student(record));
-      }
-    }
-    return studentsToAdd;
   }
 
 }
